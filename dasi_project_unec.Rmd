@@ -1,0 +1,156 @@
+---
+output: pdf_document
+---
+<!-- Make sure that the knitr package is installed and loaded. -->
+<!-- For more info on the package options see http://yihui.name/knitr/options -->
+
+<!-- Replace below with the title of your project -->
+### Is there an econonmic effect associated with being elected to the Unitied Nations Security Council
+
+<!-- Enter the code required to load your data in the space below. The data will be loaded but the line of code won't show up in your write up (echo=FALSE) in order to save space-->
+```{r echo=FALSE}
+unec <- read.csv("uneconomicdata.csv")
+```
+
+<!-- In the remainder of the document, add R code chunks as needed -->
+
+### Introduction:
+
+In September of 2013, as part of convincing New Zealand that the country should use its reources to lobby for a seat on the United Nations Security Council, the Prime Minister of New Zealand linked economic benefits to getting a seat on the U.N. Security Council.
+
+http://tvnz.co.nz/politics-news/nz-running-low-budget-bid-un-council-seat-pm-5591665
+
+This claim is predicated on the assumption that there is some kind of relationship between being elected to the U.N.S.C. and changes in the economy of the country. We can thus test the underlying quetion "Is there an associated between being elected to the U.N.S.C. and changes in the economy".
+
+As a New Zealand citizen, I care, and others should care, about this question as an example of data analysis being able to fact check the unsubstatiated claims of politicians.
+
+
+### Data:
+
+Individual countries getting on the U.N. Security Council is actually a pretty common thing. Five countries a year are elected. This provides a testable group of countries elected to the United Nations vs countries not elected to the United Nations.
+
+Data was obtained by combining a list of when countries were elected to the United Nations
+
+http://www.un.org/en/sc/members/elected.shtml
+
+with purchasing power parity adjusted valuations of the International Monetary Fund estimates of changes in country Gross Domestic Product (GDP).
+
+http://goo.gl/zKB7tV
+
+While an initial combination of all GDP data and all years was generated Changes in GDP data since 1984 were not available for all countries. Of the 4784 cases of data for a country in a base year, 4236 had sufficient GDP data to analyse. Of these 4236 cases, 123 were elected to the U.N.S.C. in year 4 of the series
+
+```{r}
+fullunec <- unec[complete.cases(unec),]
+before <- apply(fullunec[,4:6],1,median)
+after <- apply(fullunec[,7:9],1,median)
+diff_in_GDP <- after - before
+
+df <- data.frame(fullunec$Elected,diff_in_GDP)
+names(df) <- c("OnUNSCinYear4","diff_in_GDP")
+
+```
+
+
+The data sets were combined by, for each county and year, listing if they were elected to the Security Council. I also organised the changes in GDP for the 3 years previous to the year in question, the target year, and the two following years. These six years were divided in a 'before' three year period and an 'during' three year period. Three years was chosen as no country was elected to the UNSC twice within a three year period. The median of the before period was subtracted from the median of the 'during' period to give a single number representing the change in GDP that had taken place.
+
+For example, for Austria in the target year of 2000, the GDP figures were Austria 1.04 (1997), 1.05 (1998),1.05 (1999), 1.06 (2000), 1.03 (2001), 1.03 (2002). The difference in GDP between the median of the first three years and the median of the second three years was 1.03 - 1.05 (-0.02). In the target year of 2000 Austria was not elected to the Security Council. For Austria in the target year of 1991, the GDP figures were Austria 1.04 (1988), 1.08 (1989),1.08 (1990), 1.07 (1991), 1.04 (1992), 1.03 (1993). The difference in GDP between the median of the first three years and the median of the second three years was 1.04 - 1.08 (-0.04). In the target year of 1991 Austria was elected to the Security Council.
+
+This Difference in Change in GDP was the numeric variable of the study, the classification of was the country elected to the UN in the target year was the categorical variable.
+
+This is an inferential study identifying if the difference between between two samples is significant. While it may seem this is a population study, it is the population of all countries with avialable data. While this represents most countries in the world, some countries had data unavailable either due to poor econmic data collection, or the country breaking up into other countries affecting its GDP measurement. (as was the case of the breakup of Yugoslavia). The etent to which this can be generalised to all countries may be argued, but cases of country and target year having GDP change data available represent 89% of all possible cases, and 96% of cases where the country was elected to the U.N.S.C.. Certainly in New Zealand's case economic data is available at present, so in the specifically testable claim being explored New Zealand falls into the group of countries being tested.
+
+Using this data tests the claim that there is a relationship between change in GDP and election to the U.N.S.C. by enabling comparison of the economic outcomes. While this is a more general claim than the Prime Minister's claim of benefits, if the test fails the more general claim it must also fail the more specific one.
+
+### Exploratory data analysis:
+
+```{r}
+summary(df)
+summary(df[df$OnUNSCinYear4=="n",])
+summary(df[df$OnUNSCinYear4=="y",])
+```
+
+Of the 4236 cases where a country in a year had accompanying GDP information, 123 of cases were elected to the United Nations Security Council. The cases had a minimum difference in GDP of -.54 and a maximum GDP change 0.6, with a median of 0 and an average of -0.001466.
+
+Among those countries elected to the U.N.S.C. in the target year there was a minimum difference of -0.100, a maximum difference of 0.150, a median of 0 and a mean of -.004.
+
+Among those countries not elected to the U.N.S.C. in the target year there was a minimum difference of -0.540, a maximum difference of 0.600, a median of 0 and a mean of -.001.
+
+This suggests that while those countries not elected to the U.N.S.C. have a greater spread, they are pretty similar.
+```{r fig.cap="Distribution of Changes in GDP, elected vs. non-elected"}
+d <- density(df$diff_in_GDP[df$OnUNSCinYear4=="n"], na.rm = TRUE)
+plot(d, main="Distribution of differences between\nLast and First years", xlab="Difference", ylim=c(0,14))
+polygon(d, col="#FF0000CC", border="red")
+d <- density(df$diff_in_GDP[df$OnUNSCinYear4=="y"], na.rm = TRUE)
+polygon(d, col="#0000FFAA", border="blue")
+labels <- c('Not Elected', 'Elected', "Combined Zone")
+position <- 'right'
+colors <- c("#FF0000CC","#0000FFAA","#8800FFBB")
+inset <- c(0.02, 0)
+legend(position, labels, fill=colors, inset=inset)
+abline(v=0)
+text(0.13,14, labels="line of no benefit", cex=0.7)
+text(0.3,11, labels="years 4-6 better", cex=0.9, col="#00000099")
+text(-0.3,11, labels="years 4-6 worse", cex=0.9, col="#00000099")
+
+```
+
+
+A graph of the results confirms the similarity between the countries elected in the target year and countries not elected in the target year.
+
+On the basis of the summary statistics and the exploratory graph, it seems unlikely that the differences between elected and non-elected countries will be significant.
+
+
+### Inference:
+
+In comparing elected vs. non-elected on the basis of GDP change using a hypothesis test and confidence interval we are comparing if the difference mean of all results for each group (-0.001 for the non-elected countries, -0.004 for the elected countries) is large enough that it is not likely to be the results of chance (given the amount of variation in the groups). From exploratory analysis we know that both samples are large enough that these techniques are able to be used. From the exploratory graph, we can also observe that both populations seem to follow a normal distribution in their difference in GDP.
+
+In comparing the two, the Null Hypothesis (that which needs to be reject for the alternative hypothesis to be established) is that nothing interesting is going on (the difference between the means of the two groups is zero). The alternative hypothesis, what is left if the Null hypothesis is rejected, is that there is a difference between the groups.
+
+A comparison of Confidence Intervals (the range that the likely difference between the two groups falls into) provides a secondary check. If the range of likely differences includes the value 0, then the Null Hypothesis cannot be rejected as no difference is within the likely range.
+
+```{r fig.width=7, fig.height=4, fig.cap="Graphs of inference function hypothesis test"}
+source("http://bit.ly/dasi_inference")
+inference(y = df$diff_in_GDP, x = df$OnUNSCinYear4, est = "mean", type = "ht", null = 0, alternative = "twosided", method = "theoretical")
+```
+```{r fig.width=7, fig.height=4, fig.cap="Graph of inference function confidence interval"}
+source("http://bit.ly/dasi_inference")
+inference(y = df$diff_in_GDP, x = df$OnUNSCinYear4, est = "mean", type = "ci", null = 0, alternative = "twosided", inf_plot=FALSE, method = "theoretical")
+```
+
+
+For both the Hypothesis Test and the Confidence Interval, the Null Hypothesis could not be rejected. For the hypothesis test, the p-value of 0.525 indicates a 52.5% chance that the differences between the groups do not matter. As the p-value is not below 5% the Null Hypothesis is maintained. For the confidence interval, the results indicate that 95% of the time the likely range of the difference is between -0.0049 and 0.0096. As the range of the confidence interval include 0, the Null Hypothesis is maintained.
+
+### Conclusion:
+
+As the claim that economic change is linked to being elected to the U.N.S.C. is unable to be established, the more difficult claim that there is a benefit is rejected as well. 
+
+This in turn suggests that we have learned the election to the U.N.S.C. is something that should perhaps be seen in national pride or diplomatic terms rather than economic ones, those these hypotheses await testing on another day. We have also learned that political rhetoric can be subject to the rigorous glare of data analysis.
+
+Some shortcomings with the study are that economic data going back to 1984 was easily available, but the time series could be extended with more data. Another shortcoming is that the documentation for the inference function does not make it clear if it is treating the compared groups as populations or samples, however informal calculation suggests this does not change the over result. There is no relationship between being elected to the U.N.S.C. and change in GDP.
+
+### References
+
+United Nations Security Council Elections:
+
+http://www.un.org/en/sc/members/elected.shtml
+
+IMF GDP data
+
+http://goo.gl/zKB7tV
+
+Use of the Inference function
+
+https://d396qusza40orc.cloudfront.net/statistics%2FDocuments%2FLabs%2FLab_Unit4_Lab4.pdf
+
+Processed project data and rmd file
+
+https://github.com/thoughtfulbloke/unecon
+
+\pagebreak
+
+### Appendix
+
+```{r}
+df[1:45,]
+```
+
